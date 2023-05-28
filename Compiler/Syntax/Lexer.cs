@@ -100,7 +100,7 @@ internal sealed class Lexer
         {
             var offset = 1;
             var ch2 = Reader.Peek(offset);
-            var result = '\0';
+            char result;
 
             if (ch2 == '\\')
             {

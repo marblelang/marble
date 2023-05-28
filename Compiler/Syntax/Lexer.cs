@@ -104,26 +104,13 @@ internal sealed class Lexer
 
             if (ch2 == '\\')
             {
-                var ch3 = Reader.Peek(offset + 1);
-                // TODO: Unicode
-                switch (ch3)
-                {
-                    case 'n': result = '\n'; break;
-                    case 'r': result = '\r'; break;
-                    case 't': result = '\t'; break;
-                    case '\'': result = '\''; break;
-                    case '\"': result = '\"'; break;
-                    case '\\': result = '\\'; break;
-                    default:
-                        AddError(_column + offset, _line, $"Invalid escape sequence '\\{ch3}'");
-                        break;
-                }
-                offset += 2;
+                offset++;
+                result = ParseEscapeSequence(ref offset);
             }
             else if (!char.IsControl(ch2))
             {
-                result = ch2;
                 offset++;
+                result = ch2;
             }
             else
             {
@@ -189,6 +176,60 @@ internal sealed class Lexer
     private void AddError(int column, int line, string message)
     {
         Diagnostics.Add(new Diagnostic(DiagnosticSeverity.Error, message, line, column));
+    }
+
+    private char ParseEscapeSequence(ref int offset)
+    {
+        var ch = Reader.Peek(offset);
+
+        // Check for Unicode first in the form \uXXXX
+        if (ch == 'u')
+        {
+            offset++;
+            var value = 0;
+            for (var i = 0; i < 4; i++)
+            {
+                ch = Reader.Peek(offset + i);
+                switch (ch)
+                {
+                    case >= '0' and <= '9':
+                        value = (value << 4) + (ch - '0');
+                        break;
+                    case >= 'a' and <= 'f':
+                        value = (value << 4) + (ch - 'a' + 10);
+                        break;
+                    case >= 'A' and <= 'F':
+                        value = (value << 4) + (ch - 'A' + 10);
+                        break;
+                    default:
+                        AddError(_column + offset + i, _line, $"Invalid character literal '{ch}'");
+                        return ' ';
+                }
+            }
+
+            offset += 4;
+            return (char)value;
+        }
+
+        // Check for other escape sequences
+        switch (ch)
+        {
+            case '0': offset++; return '\0';
+            case 'a': offset++; return '\a';
+            case 'b': offset++; return '\b';
+            case 'f': offset++; return '\f';
+            case 'n': offset++; return '\n';
+            case 'r': offset++; return '\r';
+            case 't': offset++; return '\t';
+            case 'v': offset++; return '\v';
+            case '\\': offset++; return '\\';
+            case '\'': offset++; return '\'';
+            case '\"': offset++; return '\"';
+            default:
+                AddError(_column + offset, _line, $"Invalid character literal '{ch}'");
+                offset++;
+                return ' ';
+        }
     }
 
     private SyntaxToken TakeBasic(SyntaxKind kind, int length)

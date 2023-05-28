@@ -5,6 +5,7 @@ var src = @"
 use System.Console
 
 fun main() {
+    var x = '\n'
     WriteLine(""Hello, World!"")
 }
 ";

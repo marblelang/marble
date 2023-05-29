@@ -20,7 +20,7 @@ public enum SyntaxKind
     /// <summary>
     /// A new line sequence.
     /// </summary>
-    NewLine,
+    Newline,
 
     /// <summary>
     /// Horizontal whitespace.
@@ -31,6 +31,11 @@ public enum SyntaxKind
     /// A single line comment.
     /// </summary>
     LineComment,
+
+    /// <summary>
+    /// A multi-line comment.
+    /// </summary>
+    MultiLineComment,
 
     // Literals
 

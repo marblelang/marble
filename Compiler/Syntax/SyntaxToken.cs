@@ -15,6 +15,8 @@ public sealed record SyntaxToken
     public int Column { get; }
     public string Text { get; }
     public object? Value { get; }
+    public List<SyntaxToken>? LeadingTrivia { get; set; }
+    public List<SyntaxToken>? TrailingTrivia { get; set; }
 
     public SyntaxToken(SyntaxKind kind, int line, int column, string? text, object? value)
     {

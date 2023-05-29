@@ -22,26 +22,23 @@ internal sealed class Lexer
     /// <returns>The <see cref="SyntaxToken"/>.</returns>
     public SyntaxToken Lex()
     {
-        var ch = Reader.Peek();
+        var leadingTrivia = ParseLeadingTrivia();
+        var token = LexNormal();
+        var trailingTrivia = ParseTrailingTrivia();
 
-        if (ch == '/' && Reader.Peek(1) == '/')
-        {
-            var offset = 2;
-            while (Reader.Peek(offset) != '\n' && Reader.Peek(offset) != '\r') offset++;
-            return TakeWithText(SyntaxKind.LineComment, offset);
-        }
+        token.LeadingTrivia = leadingTrivia;
+        token.TrailingTrivia = trailingTrivia;
+
+        return token;
+    }
+
+    private SyntaxToken LexNormal()
+    {
+        var ch = Reader.Peek();
 
         switch (ch)
         {
             case '\0': return new SyntaxToken(SyntaxKind.EndOfFile, _line, _column, null, null);
-            case '\n':
-                _column = 1;
-                _line++;
-                return TakeBasic(SyntaxKind.NewLine, 1);
-            case '\r':
-                _column = 1;
-                _line++;
-                return TakeBasic(SyntaxKind.NewLine, Reader.Peek(1) == '\n' ? 2 : 1);
             case '(': return TakeBasic(SyntaxKind.OpenParenthesis, 1);
             case ')': return TakeBasic(SyntaxKind.CloseParenthesis, 1);
             case '{': return TakeBasic(SyntaxKind.OpenBrace, 1);
@@ -85,14 +82,6 @@ internal sealed class Lexer
             var text = view.ToString();
             var kind = SyntaxFacts.GetKeywordKind(text);
             return new SyntaxToken(kind, _line, _column, text, text);
-        }
-
-        if (char.IsWhiteSpace(ch))
-        {
-            var offset = 1;
-            while (char.IsWhiteSpace(Reader.Peek(offset))) offset++;
-            _column += offset;
-            return TakeWithText(SyntaxKind.Whitespace, offset);
         }
 
         // Character literals
@@ -230,6 +219,89 @@ internal sealed class Lexer
                 offset++;
                 return ' ';
         }
+    }
+
+    private List<SyntaxToken> ParseLeadingTrivia()
+    {
+        var result = new List<SyntaxToken>();
+        while (true)
+        {
+            var trivia = ParseTrivia();
+            if (trivia == null) break;
+            result.Add(trivia);
+        }
+        return result;
+    }
+
+    private List<SyntaxToken> ParseTrailingTrivia()
+    {
+        var result = new List<SyntaxToken>();
+        while (true)
+        {
+            var trivia = ParseTrivia();
+            if (trivia == null || trivia.Kind == SyntaxKind.Newline) break;
+            result.Add(trivia);
+        }
+        return result;
+    }
+
+    private SyntaxToken? ParseTrivia()
+    {
+        var ch = Reader.Peek();
+
+        // Newline
+        if (ch is '\r' or '\n')
+        {
+            var offset = 1;
+            if (ch == '\r' && Reader.Peek(offset) == '\n') offset++;
+            _line++;
+            _column = 0;
+            return TakeBasic(SyntaxKind.Newline, offset);
+        }
+
+        // Horizontal whitespace, including tabs and spaces
+        if (char.IsWhiteSpace(ch))
+        {
+            var offset = 1;
+            while (char.IsWhiteSpace(Reader.Peek(offset))) offset++;
+            _column += offset;
+            return TakeWithText(SyntaxKind.Whitespace, offset);
+        }
+
+        // Single-line comment
+        if (ch == '/' && Reader.Peek(1) == '/')
+        {
+            var offset = 2;
+            while (Reader.Peek(offset) != '\r' && Reader.Peek(offset) != '\n' && Reader.Peek(offset) != '\0') offset++;
+            _column += offset;
+            return TakeWithText(SyntaxKind.LineComment, offset);
+        }
+
+        // Multi-line comment
+        if (ch == '/' && Reader.Peek(1) == '*')
+        {
+            var offset = 2;
+            while (true)
+            {
+                if (Reader.Peek(offset) == '\0')
+                {
+                    AddError(_column + offset, _line, "Expected closing */");
+                    break;
+                }
+
+                if (Reader.Peek(offset) == '*' && Reader.Peek(offset + 1) == '/')
+                {
+                    offset += 2;
+                    break;
+                }
+
+                offset++;
+            }
+            _column += offset;
+            return TakeWithText(SyntaxKind.MultiLineComment, offset);
+        }
+
+        return null;
     }
 
     private SyntaxToken TakeBasic(SyntaxKind kind, int length)

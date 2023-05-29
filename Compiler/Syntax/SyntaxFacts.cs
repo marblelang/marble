@@ -13,7 +13,7 @@ public static class SyntaxFacts
     public static string? GetTokenText(SyntaxKind kind) => kind switch
     {
         SyntaxKind.EndOfFile => string.Empty,
-        SyntaxKind.NewLine => "\\n", // This is a special case.
+        SyntaxKind.Newline => "\\n", // This is a special case.
         SyntaxKind.OpenParenthesis => "(",
         SyntaxKind.CloseParenthesis => ")",
         SyntaxKind.OpenBrace => "{",

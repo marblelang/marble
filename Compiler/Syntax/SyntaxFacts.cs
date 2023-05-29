@@ -36,8 +36,6 @@ public static class SyntaxFacts
         SyntaxKind.Period => ".",
         SyntaxKind.LessThan => "<",
         SyntaxKind.GreaterThan => ">",
-        SyntaxKind.SingleQuote => "'",
-        SyntaxKind.DoubleQuote => "\"",
         SyntaxKind.Backslash => "\\",
         SyntaxKind.Pipe => "|",
         SyntaxKind.DoubleEquals => "==",

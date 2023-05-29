@@ -50,6 +50,31 @@ public enum SyntaxKind
     CharacterLiteral,
 
     /// <summary>
+    /// A newline in a multi-line string.
+    /// </summary>
+    StringNewline,
+
+    /// <summary>
+    /// A double quote representing the start of a line string.
+    /// </summary>
+    LineStringStart,
+
+    /// <summary>
+    /// A double quote representing the end of a line string.
+    /// </summary>
+    LineStringEnd,
+
+    /// <summary>
+    /// A triple double quote representing the start of a multi-line string.
+    /// </summary>
+    MultiLineStringStart,
+
+    /// <summary>
+    /// A triple double quote representing the end of a multi-line string.
+    /// </summary>
+    MultiLineStringEnd,
+
+    /// <summary>
     /// A non-keyword identifier.
     /// </summary>
     Identifier,
@@ -172,16 +197,6 @@ public enum SyntaxKind
     GreaterThan,
 
     /// <summary>
-    /// A single quote. <c>'</c>
-    /// </summary>
-    SingleQuote,
-
-    /// <summary>
-    /// A double quote. <c>"</c>
-    /// </summary>
-    DoubleQuote,
-
-    /// <summary>
     /// A backslash. <c>\</c>
     /// </summary>
     Backslash,
@@ -257,6 +272,11 @@ public enum SyntaxKind
     /// A double minus sign. <c>--</c>
     /// </summary>
     DoubleMinus,
+
+    /// <summary>
+    /// Triple double quotes. <c>"""</c>
+    /// </summary>
+    TripleDoubleQuote,
 
     // Keywords
 

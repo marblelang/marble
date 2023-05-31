@@ -35,7 +35,7 @@ public enum SyntaxKind
     /// <summary>
     /// A multi-line comment.
     /// </summary>
-    MultiLineComment,
+    MultilineComment,
 
     // Literals
 
@@ -72,12 +72,12 @@ public enum SyntaxKind
     /// <summary>
     /// A triple double quote representing the start of a multi-line string.
     /// </summary>
-    MultiLineStringStart,
+    MultilineStringStart,
 
     /// <summary>
     /// A triple double quote representing the end of a multi-line string.
     /// </summary>
-    MultiLineStringEnd,
+    MultilineStringEnd,
 
     /// <summary>
     /// A non-keyword identifier.

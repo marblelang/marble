@@ -298,7 +298,7 @@ internal sealed class Lexer
                 offset++;
             }
             _column += offset;
-            return TakeWithText(SyntaxKind.MultiLineComment, offset);
+            return TakeWithText(SyntaxKind.MultilineComment, offset);
         }
 
         return null;

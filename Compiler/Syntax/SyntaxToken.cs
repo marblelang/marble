@@ -11,20 +11,16 @@ namespace Compiler.Syntax;
 public sealed record SyntaxToken
 {
     public SyntaxKind Kind { get; }
-    public int Line { get; }
-    public int Column { get; }
     public string Text { get; }
     public object? Value { get; }
     public List<SyntaxToken>? LeadingTrivia { get; set; }
     public List<SyntaxToken>? TrailingTrivia { get; set; }
 
-    public SyntaxToken(SyntaxKind kind, int line, int column, string? text, object? value)
+    public SyntaxToken(SyntaxKind kind, string? text, object? value)
     {
         Kind = kind;
         Text = text ?? SyntaxFacts.GetTokenText(kind) ?? throw new InvalidOperationException("No text for token.");
         Value = value;
-        Line = line;
-        Column = column;
     }
 
     public override string ToString() => $"{Kind}: {Text}";

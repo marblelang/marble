@@ -1,15 +1,13 @@
 using System.Text;
+using Compiler.Diagnostics;
 
 namespace Compiler.Syntax;
 
 internal sealed class Lexer
 {
-    private int _column = 1;
-    private int _line = 1;
-
     private SourceReader Reader { get; }
 
-    public List<Diagnostic> Diagnostics { get; } = new();
+    public List<DiagnosticInfo> Diagnostics { get; } = new();
 
     public Lexer(SourceReader reader)
     {
@@ -38,7 +36,7 @@ internal sealed class Lexer
 
         switch (ch)
         {
-            case '\0': return new SyntaxToken(SyntaxKind.EndOfFile, _line, _column, null, null);
+            case '\0': return new SyntaxToken(SyntaxKind.EndOfFile, null, null);
             case '(': return TakeBasic(SyntaxKind.OpenParenthesis, 1);
             case ')': return TakeBasic(SyntaxKind.CloseParenthesis, 1);
             case '{': return TakeBasic(SyntaxKind.OpenBrace, 1);
@@ -68,9 +66,8 @@ internal sealed class Lexer
             var offset = 1;
             while (char.IsDigit(Reader.Peek(offset))) offset++;
             var view = Reader.Read(offset);
-            _column += offset;
             var value = int.Parse(view.Span);
-            return new SyntaxToken(SyntaxKind.NumberLiteral, _line, _column, view.ToString(), value);
+            return new SyntaxToken(SyntaxKind.NumberLiteral, view.ToString(), value);
         }
 
         if (IsIdentifierStart(ch))
@@ -78,10 +75,9 @@ internal sealed class Lexer
             var offset = 1;
             while (IsIdentifierPart(Reader.Peek(offset))) offset++;
             var view = Reader.Read(offset);
-            _column += offset;
             var text = view.ToString();
             var kind = SyntaxFacts.GetKeywordKind(text);
-            return new SyntaxToken(kind, _line, _column, text, text);
+            return new SyntaxToken(kind, text, text);
         }
 
         // Character literals
@@ -103,22 +99,21 @@ internal sealed class Lexer
             }
             else
             {
-                AddError(_column + offset, _line, $"Invalid character literal '{ch2}'");
+                AddError(SyntaxDiagnostics.InvalidChar, offset, 1);
                 offset++;
                 result = ' ';
             }
 
             if (Reader.Peek(offset) != '\'')
             {
-                AddError(_column + offset, _line, "Expected closing '");
+                AddError(SyntaxDiagnostics.UnclosedChar, offset, 1);
             }
             else
             {
                 offset++;
             }
 
-            _column += offset;
-            return new SyntaxToken(SyntaxKind.CharacterLiteral, _line, _column, Reader.Read(offset).ToString(), result);
+            return new SyntaxToken(SyntaxKind.CharacterLiteral, Reader.Read(offset).ToString(), result);
         }
 
         // String literals
@@ -136,9 +131,9 @@ internal sealed class Lexer
                     break;
                 }
 
-                if (ch2 == '\0')
+                if (ch2 is '\0' or '\r' or '\n')
                 {
-                    AddError(_column + offset, _line, "Expected closing \"");
+                    AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
                     break;
                 }
 
@@ -149,22 +144,21 @@ internal sealed class Lexer
                 }
                 else
                 {
-                    AddError(_column + offset, _line, $"Invalid character literal '{ch2}'");
+                    AddError(SyntaxDiagnostics.InvalidChar, offset, 1);
                     offset++;
                     builder.Append(' ');
                 }
             }
 
-            _column += offset;
-            return new SyntaxToken(SyntaxKind.StringLiteral, _line, _column, Reader.Read(offset).ToString(), builder.ToString());
+            return new SyntaxToken(SyntaxKind.StringLiteral, Reader.Read(offset).ToString(), builder.ToString());
         }
 
         return TakeWithText(SyntaxKind.Unknown, 1);
     }
 
-    private void AddError(int column, int line, string message)
+    private void AddError(Diagnostic diagnostic, int offset, int width, params object[] args)
     {
-        Diagnostics.Add(new Diagnostic(DiagnosticSeverity.Error, message, line, column));
+        Diagnostics.Add(new DiagnosticInfo(diagnostic, offset, width, args));
     }
 
     private char ParseEscapeSequence(ref int offset)
@@ -191,7 +185,7 @@ internal sealed class Lexer
                         value = (value << 4) + (ch - 'A' + 10);
                         break;
                     default:
-                        AddError(_column + offset + i, _line, $"Invalid character literal '{ch}'");
+                        AddError(SyntaxDiagnostics.InvalidUnicodeCodepoint, offset, 4);
                         return ' ';
                 }
             }
@@ -215,7 +209,7 @@ internal sealed class Lexer
             case '\'': offset++; return '\'';
             case '\"': offset++; return '\"';
             default:
-                AddError(_column + offset, _line, $"Invalid character literal '{ch}'");
+                AddError(SyntaxDiagnostics.InvalidEscapeCharacter, offset, 1);
                 offset++;
                 return ' ';
         }
@@ -254,8 +248,6 @@ internal sealed class Lexer
         {
             var offset = 1;
             if (ch == '\r' && Reader.Peek(offset) == '\n') offset++;
-            _line++;
-            _column = 0;
             return TakeBasic(SyntaxKind.Newline, offset);
         }
 
@@ -264,7 +256,6 @@ internal sealed class Lexer
         {
             var offset = 1;
             while (char.IsWhiteSpace(Reader.Peek(offset))) offset++;
-            _column += offset;
             return TakeWithText(SyntaxKind.Whitespace, offset);
         }
 
@@ -273,7 +264,6 @@ internal sealed class Lexer
         {
             var offset = 2;
             while (Reader.Peek(offset) != '\r' && Reader.Peek(offset) != '\n' && Reader.Peek(offset) != '\0') offset++;
-            _column += offset;
             return TakeWithText(SyntaxKind.LineComment, offset);
         }
 
@@ -285,7 +275,7 @@ internal sealed class Lexer
             {
                 if (Reader.Peek(offset) == '\0')
                 {
-                    AddError(_column + offset, _line, "Expected closing */");
+                    AddError(SyntaxDiagnostics.UnclosedComment, offset, 1);
                     break;
                 }
 
@@ -297,7 +287,6 @@ internal sealed class Lexer
 
                 offset++;
             }
-            _column += offset;
             return TakeWithText(SyntaxKind.MultilineComment, offset);
         }
 
@@ -306,16 +295,14 @@ internal sealed class Lexer
 
     private SyntaxToken TakeBasic(SyntaxKind kind, int length)
     {
-        var result = new SyntaxToken(kind, _line, _column, null, null);
+        var result = new SyntaxToken(kind, null, null);
         Reader.Read(length);
-        _column += length;
         return result;
     }
 
     private SyntaxToken TakeWithText(SyntaxKind kind, int length)
     {
-        var result = new SyntaxToken(kind, _line, _column, Reader.Read(length).ToString(), null);
-        _column += length;
+        var result = new SyntaxToken(kind, Reader.Read(length).ToString(), null);
         return result;
     }
 

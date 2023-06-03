@@ -14,6 +14,10 @@ public static class SyntaxFacts
     {
         SyntaxKind.EndOfFile => string.Empty,
         SyntaxKind.Newline => "\\n", // This is a special case.
+        SyntaxKind.LineStringStart => "\"",
+        SyntaxKind.LineStringEnd => "\"",
+        SyntaxKind.MultilineStringStart => "\"\"\"",
+        SyntaxKind.MultilineStringEnd => "\"\"\"",
         SyntaxKind.OpenParenthesis => "(",
         SyntaxKind.CloseParenthesis => ")",
         SyntaxKind.OpenBrace => "{",

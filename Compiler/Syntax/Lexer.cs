@@ -1,10 +1,18 @@
-using System.Text;
 using Compiler.Diagnostics;
 
 namespace Compiler.Syntax;
 
 internal sealed class Lexer
 {
+    private enum LexerState
+    {
+        Normal,
+        Interpolation,
+        LineString,
+        MultilineString
+    }
+
+    private Stack<LexerState> State { get; } = new();
     private SourceReader Reader { get; }
 
     public List<DiagnosticInfo> Diagnostics { get; } = new();
@@ -12,6 +20,7 @@ internal sealed class Lexer
     public Lexer(SourceReader reader)
     {
         Reader = reader;
+        State.Push(LexerState.Normal);
     }
 
     /// <summary>
@@ -20,12 +29,28 @@ internal sealed class Lexer
     /// <returns>The <see cref="SyntaxToken"/>.</returns>
     public SyntaxToken Lex()
     {
-        var leadingTrivia = ParseLeadingTrivia();
-        var token = LexNormal();
-        var trailingTrivia = ParseTrailingTrivia();
+        SyntaxToken token;
 
-        token.LeadingTrivia = leadingTrivia;
-        token.TrailingTrivia = trailingTrivia;
+        switch (State.Peek())
+        {
+            case LexerState.Normal:
+            case LexerState.Interpolation:
+                var leadingTrivia = ParseLeadingTrivia();
+                token = LexNormal();
+                var trailingTrivia = ParseTrailingTrivia();
+
+                token.LeadingTrivia = leadingTrivia;
+                token.TrailingTrivia = trailingTrivia;
+                break;
+            case LexerState.LineString:
+                token = LexLineString();
+                break;
+            case LexerState.MultilineString:
+                token = LexMultilineString();
+                break;
+            default:
+                throw new InvalidOperationException("Invalid lexer state");
+        }
 
         return token;
     }
@@ -119,41 +144,107 @@ internal sealed class Lexer
         // String literals
         if (ch == '\"')
         {
-            var offset = 1;
-            var builder = new StringBuilder();
-            while (true)
+            if (Reader.Peek(1) == '\"' && Reader.Peek(2) == '\"')
             {
-                var ch2 = Reader.Peek(offset);
+                State.Push(LexerState.MultilineString);
+                return TakeBasic(SyntaxKind.MultilineStringStart, 3);
+            }
 
-                if (ch2 == '\"')
+            State.Push(LexerState.LineString);
+            return TakeBasic(SyntaxKind.LineStringStart, 1);
+        }
+
+        return TakeWithText(SyntaxKind.Unknown, 1);
+    }
+
+    private SyntaxToken LexLineString()
+    {
+        var offset = 0;
+        var ch = Reader.Peek(offset);
+
+        switch (ch)
+        {
+            case '\"':
+                State.Pop();
+                return TakeBasic(SyntaxKind.LineStringEnd, 1);
+            case '\0' or '\r' or '\n':
+                AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
+                State.Pop();
+                switch (ch)
                 {
-                    offset++;
-                    break;
+                    case '\0': return new SyntaxToken(SyntaxKind.EndOfFile, null, null);
+                    case '\r' or '\n': return ParseNewline(ref offset);
                 }
+                break;
+        }
 
-                if (ch2 is '\0' or '\r' or '\n')
+        while (ch != '\0' && ch != '\r' && ch != '\n' && ch != '\"')
+        {
+            if (ch == '\\')
+            {
+                offset++;
+                ch = Reader.Peek(offset);
+                if (ch is '\0' or '\r' or '\n')
                 {
                     AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
                     break;
                 }
+            }
 
-                if (!char.IsControl(ch2))
+            offset++;
+            ch = Reader.Peek(offset);
+        }
+
+        var text = Reader.Read(offset).ToString();
+
+        return new SyntaxToken(SyntaxKind.StringLiteral, text, text);
+    }
+
+    private SyntaxToken LexMultilineString()
+    {
+        var offset = 0;
+        var ch = Reader.Peek(offset);
+        var ch2 = Reader.Peek(1);
+        var ch3 = Reader.Peek(2);
+
+        switch (ch)
+        {
+            case '\"':
+                if (ch2 is '\"' && ch3 is '\"')
                 {
-                    builder.Append(ch2);
-                    offset++;
+                    State.Pop();
+                    return TakeBasic(SyntaxKind.MultilineStringEnd, 3);
                 }
-                else
+
+                break;
+            case '\0':
+                AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
+                State.Pop();
+                return new SyntaxToken(SyntaxKind.EndOfFile, null, null);
+        }
+
+        while (ch != '\0' && !(ch is '\"' && ch2 is '\"' && ch3 is '\"'))
+        {
+            if (ch == '\\')
+            {
+                offset++;
+                ch = Reader.Peek(offset);
+                if (ch is '\0')
                 {
-                    AddError(SyntaxDiagnostics.InvalidChar, offset, 1);
-                    offset++;
-                    builder.Append(' ');
+                    AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
+                    break;
                 }
             }
 
-            return new SyntaxToken(SyntaxKind.StringLiteral, Reader.Read(offset).ToString(), builder.ToString());
+            offset++;
+            ch = Reader.Peek(offset);
+            ch2 = Reader.Peek(offset + 1);
+            ch3 = Reader.Peek(offset + 2);
         }
 
-        return TakeWithText(SyntaxKind.Unknown, 1);
+        var text = Reader.Read(offset).ToString();
+
+        return new SyntaxToken(SyntaxKind.StringLiteral, text, text);
     }
 
     private void AddError(Diagnostic diagnostic, int offset, int width, params object[] args)
@@ -212,6 +303,23 @@ internal sealed class Lexer
                 AddError(SyntaxDiagnostics.InvalidEscapeCharacter, offset, 1);
                 offset++;
                 return ' ';
+        }
+    }
+
+    private SyntaxToken ParseNewline(ref int offset)
+    {
+        var ch = Reader.Peek(offset);
+
+        switch (ch)
+        {
+            case '\r' when Reader.Peek(1) == '\n':
+                offset += 2;
+                return TakeBasic(SyntaxKind.Newline, 2);
+            case '\r' or '\n':
+                offset++;
+                return TakeBasic(SyntaxKind.Newline, 1);
+            default:
+                return TakeWithText(SyntaxKind.Unknown, 1);
         }
     }
 

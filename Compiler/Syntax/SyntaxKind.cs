@@ -55,11 +55,6 @@ public enum SyntaxKind
     CharacterLiteral,
 
     /// <summary>
-    /// A newline in a multi-line string.
-    /// </summary>
-    StringNewline,
-
-    /// <summary>
     /// A double quote representing the start of a line string.
     /// </summary>
     LineStringStart,
@@ -278,17 +273,7 @@ public enum SyntaxKind
     /// </summary>
     DoubleMinus,
 
-    /// <summary>
-    /// Triple double quotes. <c>"""</c>
-    /// </summary>
-    TripleDoubleQuote,
-
     // Keywords
-
-    /// <summary>
-    /// The <c>and</c> keyword.
-    /// </summary>
-    AndKeyword,
 
     /// <summary>
     /// The <c>do</c> keyword.
@@ -319,11 +304,6 @@ public enum SyntaxKind
     /// The <c>if</c> keyword.
     /// </summary>
     IfKeyword,
-
-    /// <summary>
-    /// The <c>or</c> keyword.
-    /// </summary>
-    OrKeyword,
 
     /// <summary>
     /// The <c>return</c> keyword.

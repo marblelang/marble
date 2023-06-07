@@ -40,9 +40,19 @@ public enum SyntaxKind
     // Literals
 
     /// <summary>
-    /// A numeric literal.
+    /// An integer literal.
     /// </summary>
-    NumberLiteral,
+    IntegerLiteral,
+
+    /// <summary>
+    /// A floating point literal.
+    /// </summary>
+    FloatLiteral,
+
+    /// <summary>
+    /// A double floating point literal.
+    /// </summary>
+    DoubleLiteral,
 
     /// <summary>
     /// A string literal.

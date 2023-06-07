@@ -86,13 +86,45 @@ internal sealed class Lexer
             case '>': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.GreaterThanOrEqual, 2) : TakeBasic(SyntaxKind.GreaterThan, 1);
         }
 
+        // Numeric literals
+        // TODO: Handle scientific notation
         if (char.IsDigit(ch))
         {
             var offset = 1;
             while (char.IsDigit(Reader.Peek(offset))) offset++;
-            var view = Reader.Read(offset);
-            var value = int.Parse(view.Span);
-            return new SyntaxToken(SyntaxKind.NumberLiteral, view.ToString(), value);
+
+            ch = Reader.Peek(offset);
+
+            if (ch == '.')
+            {
+                // Floating point
+                offset++;
+                while (char.IsDigit(Reader.Peek(offset))) offset++;
+
+                ch = Reader.Peek(offset);
+
+                if (ch == 'f')
+                {
+                    var view = Reader.Read(offset);
+                    var value = float.Parse(view.Span);
+                    Reader.Read(1); // Skip the 'f'
+                    return new SyntaxToken(SyntaxKind.FloatLiteral, view.ToString(), value);
+                }
+                else
+                {
+                    var view = Reader.Read(offset);
+                    var value = double.Parse(view.Span);
+                    return new SyntaxToken(SyntaxKind.DoubleLiteral, view.ToString(), value);
+                }
+            }
+
+            // We need this in a scope so we can reuse the variable names
+            {
+                // Integer
+                var view = Reader.Read(offset);
+                var value = int.Parse(view.Span);
+                return new SyntaxToken(SyntaxKind.IntegerLiteral, view.ToString(), value);
+            }
         }
 
         if (IsIdentifierStart(ch))

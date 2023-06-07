@@ -6,6 +6,8 @@ use System.Console
 
 fun main() {
     var x = '\n'
+    var y = 1234 // Integer literal
+    var f = 1.0f
     WriteLine(""Hello, World!"")
 }
 ";

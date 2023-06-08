@@ -13,7 +13,6 @@ public static class SyntaxFacts
     public static string? GetTokenText(SyntaxKind kind) => kind switch
     {
         SyntaxKind.EndOfFile => string.Empty,
-        SyntaxKind.Newline => "\\n", // This is a special case.
         SyntaxKind.LineStringStart => "\"",
         SyntaxKind.LineStringEnd => "\"",
         SyntaxKind.MultilineStringStart => "\"\"\"",

@@ -30,20 +30,28 @@ internal sealed class Lexer
     public SyntaxToken Lex()
     {
         SyntaxToken token;
+        List<TriviaToken> leadingTrivia;
+        List<TriviaToken> trailingTrivia;
 
         switch (State.Peek())
         {
+
             case LexerState.Normal:
             case LexerState.Interpolation:
-                var leadingTrivia = ParseLeadingTrivia();
+                leadingTrivia = ParseLeadingTrivia();
                 token = LexNormal();
-                var trailingTrivia = ParseTrailingTrivia();
+                trailingTrivia = ParseTrailingTrivia();
 
                 token.LeadingTrivia = leadingTrivia;
                 token.TrailingTrivia = trailingTrivia;
                 break;
             case LexerState.LineString:
+                leadingTrivia = ParseLeadingTrivia();
                 token = LexLineString();
+                trailingTrivia = ParseTrailingTrivia();
+
+                token.LeadingTrivia = leadingTrivia;
+                token.TrailingTrivia = trailingTrivia;
                 break;
             case LexerState.MultilineString:
                 token = LexMultilineString();
@@ -61,7 +69,7 @@ internal sealed class Lexer
 
         switch (ch)
         {
-            case '\0': return new SyntaxToken(SyntaxKind.EndOfFile, null, null);
+            case '\0': return new SyntaxToken(SyntaxKind.EndOfFile, null);
             case '(': return TakeBasic(SyntaxKind.OpenParenthesis, 1);
             case ')': return TakeBasic(SyntaxKind.CloseParenthesis, 1);
             case '{': return TakeBasic(SyntaxKind.OpenBrace, 1);
@@ -108,13 +116,13 @@ internal sealed class Lexer
                     var view = Reader.Read(offset);
                     var value = float.Parse(view.Span);
                     Reader.Read(1); // Skip the 'f'
-                    return new SyntaxToken(SyntaxKind.FloatLiteral, view.ToString(), value);
+                    return new LiteralToken(SyntaxKind.FloatLiteral, view.ToString(), value);
                 }
                 else
                 {
                     var view = Reader.Read(offset);
                     var value = double.Parse(view.Span);
-                    return new SyntaxToken(SyntaxKind.DoubleLiteral, view.ToString(), value);
+                    return new LiteralToken(SyntaxKind.DoubleLiteral, view.ToString(), value);
                 }
             }
 
@@ -123,7 +131,7 @@ internal sealed class Lexer
                 // Integer
                 var view = Reader.Read(offset);
                 var value = int.Parse(view.Span);
-                return new SyntaxToken(SyntaxKind.IntegerLiteral, view.ToString(), value);
+                return new LiteralToken(SyntaxKind.IntegerLiteral, view.ToString(), value);
             }
         }
 
@@ -134,7 +142,7 @@ internal sealed class Lexer
             var view = Reader.Read(offset);
             var text = view.ToString();
             var kind = SyntaxFacts.GetKeywordKind(text);
-            return new SyntaxToken(kind, text, text);
+            return new LiteralToken(kind, text, text);
         }
 
         // Character literals
@@ -170,7 +178,7 @@ internal sealed class Lexer
                 offset++;
             }
 
-            return new SyntaxToken(SyntaxKind.CharacterLiteral, Reader.Read(offset).ToString(), result);
+            return new LiteralToken(SyntaxKind.CharacterLiteral, Reader.Read(offset).ToString(), result);
         }
 
         // String literals
@@ -199,15 +207,10 @@ internal sealed class Lexer
             case '\"':
                 State.Pop();
                 return TakeBasic(SyntaxKind.LineStringEnd, 1);
-            case '\0' or '\r' or '\n':
+            case '\0':
                 AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
                 State.Pop();
-                switch (ch)
-                {
-                    case '\0': return new SyntaxToken(SyntaxKind.EndOfFile, null, null);
-                    case '\r' or '\n': return ParseNewline(ref offset);
-                }
-                break;
+                return new SyntaxToken(SyntaxKind.EndOfFile, null);
         }
 
         while (ch != '\0' && ch != '\r' && ch != '\n' && ch != '\"')
@@ -229,7 +232,7 @@ internal sealed class Lexer
 
         var text = Reader.Read(offset).ToString();
 
-        return new SyntaxToken(SyntaxKind.StringLiteral, text, text);
+        return new LiteralToken(SyntaxKind.StringLiteral, text, text);
     }
 
     private SyntaxToken LexMultilineString()
@@ -252,7 +255,7 @@ internal sealed class Lexer
             case '\0':
                 AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
                 State.Pop();
-                return new SyntaxToken(SyntaxKind.EndOfFile, null, null);
+                return new SyntaxToken(SyntaxKind.EndOfFile, null);
         }
 
         while (ch != '\0' && !(ch is '\"' && ch2 is '\"' && ch3 is '\"'))
@@ -276,7 +279,7 @@ internal sealed class Lexer
 
         var text = Reader.Read(offset).ToString();
 
-        return new SyntaxToken(SyntaxKind.StringLiteral, text, text);
+        return new LiteralToken(SyntaxKind.StringLiteral, text, text);
     }
 
     private void AddError(Diagnostic diagnostic, int offset, int width, params object[] args)
@@ -338,26 +341,9 @@ internal sealed class Lexer
         }
     }
 
-    private SyntaxToken ParseNewline(ref int offset)
+    private List<TriviaToken> ParseLeadingTrivia()
     {
-        var ch = Reader.Peek(offset);
-
-        switch (ch)
-        {
-            case '\r' when Reader.Peek(1) == '\n':
-                offset += 2;
-                return TakeBasic(SyntaxKind.Newline, 2);
-            case '\r' or '\n':
-                offset++;
-                return TakeBasic(SyntaxKind.Newline, 1);
-            default:
-                return TakeWithText(SyntaxKind.Unknown, 1);
-        }
-    }
-
-    private List<SyntaxToken> ParseLeadingTrivia()
-    {
-        var result = new List<SyntaxToken>();
+        var result = new List<TriviaToken>();
         while (true)
         {
             var trivia = ParseTrivia();
@@ -367,19 +353,24 @@ internal sealed class Lexer
         return result;
     }
 
-    private List<SyntaxToken> ParseTrailingTrivia()
+    private List<TriviaToken> ParseTrailingTrivia()
     {
-        var result = new List<SyntaxToken>();
+        var result = new List<TriviaToken>();
         while (true)
         {
             var trivia = ParseTrivia();
-            if (trivia == null || trivia.Kind == SyntaxKind.Newline) break;
+            if (trivia == null) break;
+            if (trivia.Kind == TriviaKind.Newline)
+            {
+                if (State.Peek() == LexerState.LineString) State.Pop();
+                break;
+            }
             result.Add(trivia);
         }
         return result;
     }
 
-    private SyntaxToken? ParseTrivia()
+    private TriviaToken? ParseTrivia()
     {
         var ch = Reader.Peek();
 
@@ -388,7 +379,7 @@ internal sealed class Lexer
         {
             var offset = 1;
             if (ch == '\r' && Reader.Peek(offset) == '\n') offset++;
-            return TakeBasic(SyntaxKind.Newline, offset);
+            return TakeTrivia(TriviaKind.Newline, offset);
         }
 
         // Horizontal whitespace, including tabs and spaces
@@ -396,7 +387,7 @@ internal sealed class Lexer
         {
             var offset = 1;
             while (char.IsWhiteSpace(Reader.Peek(offset))) offset++;
-            return TakeWithText(SyntaxKind.Whitespace, offset);
+            return TakeTrivia(TriviaKind.Whitespace, offset);
         }
 
         // Single-line comment
@@ -404,7 +395,7 @@ internal sealed class Lexer
         {
             var offset = 2;
             while (Reader.Peek(offset) != '\r' && Reader.Peek(offset) != '\n' && Reader.Peek(offset) != '\0') offset++;
-            return TakeWithText(SyntaxKind.LineComment, offset);
+            return TakeTrivia(TriviaKind.LineComment, offset);
         }
 
         // Multi-line comment
@@ -427,7 +418,7 @@ internal sealed class Lexer
 
                 offset++;
             }
-            return TakeWithText(SyntaxKind.MultilineComment, offset);
+            return TakeTrivia(TriviaKind.MultilineComment, offset);
         }
 
         return null;
@@ -435,14 +426,20 @@ internal sealed class Lexer
 
     private SyntaxToken TakeBasic(SyntaxKind kind, int length)
     {
-        var result = new SyntaxToken(kind, null, null);
+        var result = new SyntaxToken(kind, null);
         Reader.Read(length);
+        return result;
+    }
+
+    private TriviaToken TakeTrivia(TriviaKind kind, int length)
+    {
+        var result = new TriviaToken(kind, Reader.Read(length).ToString());
         return result;
     }
 
     private SyntaxToken TakeWithText(SyntaxKind kind, int length)
     {
-        var result = new SyntaxToken(kind, Reader.Read(length).ToString(), null);
+        var result = new SyntaxToken(kind, Reader.Read(length).ToString());
         return result;
     }
 

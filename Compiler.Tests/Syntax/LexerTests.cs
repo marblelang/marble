@@ -1,3 +1,4 @@
+using Compiler.Diagnostics;
 using Compiler.Syntax;
 
 namespace Compiler.Tests.Syntax;
@@ -38,6 +39,12 @@ public class LexerTests
         });
     }
 
+    private void AssertDiagnostics(params Diagnostic[] diagnostics)
+    {
+        var actual = Current.Diagnostics ?? Enumerable.Empty<DiagnosticInfo>();
+        Assert.That(actual.Select(diagnostic => diagnostic.Diagnostic), Is.EquivalentTo(diagnostics));
+    }
+
     private void AssertKind(SyntaxKind kind) => Assert.That(Current.Kind, Is.EqualTo(kind));
 
     private void AssertText(string text) => Assert.That(Current.Text, Is.EqualTo(text));
@@ -47,7 +54,27 @@ public class LexerTests
         if (Current is LiteralToken token) Assert.That(token.Value, Is.EqualTo(value));
     }
 
+    private void AssertLeadingTrivia(params (TriviaKind Kind, string Text)[] trivia)
+    {
+        var actual = Current.LeadingTrivia ?? Enumerable.Empty<TriviaToken>();
+        Assert.That(actual.Select(token => (token.Kind, token.Text)), Is.EquivalentTo(trivia));
+    }
+
+    private void AssertTrailingTrivia(params (TriviaKind Kind, string Text)[] trivia)
+    {
+        var actual = Current.TrailingTrivia ?? Enumerable.Empty<TriviaToken>();
+        Assert.That(actual.Select(token => (token.Kind, token.Text)), Is.EquivalentTo(trivia));
+    }
+
+    private void AssertNoTriviaOrDiagnostics()
+    {
+        AssertLeadingTrivia();
+        AssertTrailingTrivia();
+        AssertDiagnostics();
+    }
+
     [Test]
+    [Category("Trivia")]
     public void LineComment()
     {
         const string text = "// This is a comment";
@@ -55,5 +82,141 @@ public class LexerTests
         Lex(text);
 
         AssertNextToken(SyntaxKind.EndOfFile);
+        AssertLeadingTrivia((TriviaKind.LineComment, text));
+        AssertTrailingTrivia();
+        AssertDiagnostics();
+    }
+
+    [Test]
+    [Category("Trivia")]
+    public void BlockCommentSingleLine()
+    {
+        const string text = "/* This is a comment */";
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertLeadingTrivia((TriviaKind.MultilineComment, text));
+        AssertTrailingTrivia();
+        AssertDiagnostics();
+    }
+
+    [Test]
+    [Category("Trivia")]
+    public void BlockCommentMultiLine()
+    {
+        var text = """
+        /* This is a comment
+        * that spans multiple lines
+        */
+        """.Trim();
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertLeadingTrivia((TriviaKind.MultilineComment, text));
+        AssertTrailingTrivia();
+        AssertDiagnostics();
+    }
+
+    [Test]
+    [Category("Trivia")]
+    public void UnclosedBlockComment()
+    {
+        var text = """
+        /* This is a comment
+        * that spans multiple lines
+        """.Trim();
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertLeadingTrivia((TriviaKind.MultilineComment, text));
+        AssertTrailingTrivia();
+        AssertDiagnostics(SyntaxDiagnostics.UnclosedComment);
+    }
+
+    [Test]
+    [Category("String")]
+    public void LineString()
+    {
+        const string text = @"""This is a string""";
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.LineStringStart, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is a string");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.LineStringEnd, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [Category("String")]
+    public void UnclosedLineString()
+    {
+        const string text = @"""This is a string";
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.LineStringStart, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is a string");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertDiagnostics(SyntaxDiagnostics.UnclosedString);
+    }
+
+    [Test]
+    [Category("String")]
+    public void MultilineString()
+    {
+        var text = @"
+""""""This is a string
+that spans multiple lines""""""
+        ".Trim();
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.MultilineStringStart, "\"\"\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is a string\nthat spans multiple lines");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.MultilineStringEnd, "\"\"\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [Category("String")]
+    public void UnclosedMultilineString()
+    {
+        var text = @"
+""""""This is a string
+that spans multiple lines""""
+        ".Trim();
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.MultilineStringStart, "\"\"\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is a string\nthat spans multiple lines\"\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertDiagnostics(SyntaxDiagnostics.UnclosedString);
     }
 }

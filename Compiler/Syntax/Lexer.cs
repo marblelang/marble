@@ -14,8 +14,7 @@ internal sealed class Lexer
 
     private Stack<LexerState> State { get; } = new();
     private SourceReader Reader { get; }
-
-    public List<DiagnosticInfo> Diagnostics { get; } = new();
+    private List<DiagnosticInfo> Diagnostics { get; } = new();
 
     public Lexer(SourceReader reader)
     {
@@ -32,6 +31,7 @@ internal sealed class Lexer
         SyntaxToken token;
         List<TriviaToken> leadingTrivia;
         List<TriviaToken> trailingTrivia;
+        Diagnostics.Clear();
 
         switch (State.Peek())
         {
@@ -58,6 +58,8 @@ internal sealed class Lexer
             default:
                 throw new InvalidOperationException("Invalid lexer state");
         }
+
+        if (Diagnostics.Count > 0) token.Diagnostics = Diagnostics;
 
         return token;
     }

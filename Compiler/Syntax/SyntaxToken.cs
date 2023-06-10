@@ -1,3 +1,5 @@
+using Compiler.Diagnostics;
+
 namespace Compiler.Syntax;
 
 /// <summary>
@@ -13,6 +15,7 @@ public record SyntaxToken : IToken
     public string Text { get; }
     public List<TriviaToken>? LeadingTrivia { get; set; }
     public List<TriviaToken>? TrailingTrivia { get; set; }
+    internal List<DiagnosticInfo>? Diagnostics { get; set; }
 
     public SyntaxToken(SyntaxKind kind, string? text)
     {

@@ -35,7 +35,6 @@ internal sealed class Lexer
 
         switch (State.Peek())
         {
-
             case LexerState.Normal:
             case LexerState.Interpolation:
                 leadingTrivia = ParseLeadingTrivia();
@@ -80,18 +79,42 @@ internal sealed class Lexer
             case ':': return TakeBasic(SyntaxKind.Colon, 1);
             case ';': return TakeBasic(SyntaxKind.Semicolon, 1);
             case '.': return TakeBasic(SyntaxKind.Period, 1);
-            case '+': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.PlusEquals, 2) : TakeBasic(SyntaxKind.Plus, 1);
-            case '-': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.MinusEquals, 2) : TakeBasic(SyntaxKind.Minus, 1);
-            case '*': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.AsteriskEquals, 2) : TakeBasic(SyntaxKind.Asterisk, 1);
-            case '/': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.SlashEquals, 2) : TakeBasic(SyntaxKind.Slash, 1);
-            case '%': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.PercentEquals, 2) : TakeBasic(SyntaxKind.Percent, 1);
-            case '^': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.CaretEquals, 2) : TakeBasic(SyntaxKind.Caret, 1);
-            case '&': return Reader.Peek(1) == '&' ? TakeBasic(SyntaxKind.DoubleAmpersand, 2) : TakeBasic(SyntaxKind.Ampersand, 1);
-            case '|': return Reader.Peek(1) == '|' ? TakeBasic(SyntaxKind.DoublePipe, 2) : TakeBasic(SyntaxKind.Pipe, 1);
-            case '=': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.DoubleEquals, 2) : TakeBasic(SyntaxKind.Equals, 1);
-            case '!': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.NotEquals, 2) : TakeBasic(SyntaxKind.ExclamationMark, 1);
-            case '<': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.LessThanOrEqual, 2) : TakeBasic(SyntaxKind.LessThan, 1);
-            case '>': return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.GreaterThanOrEqual, 2) : TakeBasic(SyntaxKind.GreaterThan, 1);
+            case '+':
+                return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.PlusEquals, 2) : TakeBasic(SyntaxKind.Plus, 1);
+            case '-':
+                return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.MinusEquals, 2) : TakeBasic(SyntaxKind.Minus, 1);
+            case '*':
+                return Reader.Peek(1) == '='
+                    ? TakeBasic(SyntaxKind.AsteriskEquals, 2)
+                    : TakeBasic(SyntaxKind.Asterisk, 1);
+            case '/':
+                return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.SlashEquals, 2) : TakeBasic(SyntaxKind.Slash, 1);
+            case '%':
+                return Reader.Peek(1) == '='
+                    ? TakeBasic(SyntaxKind.PercentEquals, 2)
+                    : TakeBasic(SyntaxKind.Percent, 1);
+            case '^':
+                return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.CaretEquals, 2) : TakeBasic(SyntaxKind.Caret, 1);
+            case '&':
+                return Reader.Peek(1) == '&'
+                    ? TakeBasic(SyntaxKind.DoubleAmpersand, 2)
+                    : TakeBasic(SyntaxKind.Ampersand, 1);
+            case '|':
+                return Reader.Peek(1) == '|' ? TakeBasic(SyntaxKind.DoublePipe, 2) : TakeBasic(SyntaxKind.Pipe, 1);
+            case '=':
+                return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.DoubleEquals, 2) : TakeBasic(SyntaxKind.Equals, 1);
+            case '!':
+                return Reader.Peek(1) == '='
+                    ? TakeBasic(SyntaxKind.NotEquals, 2)
+                    : TakeBasic(SyntaxKind.ExclamationMark, 1);
+            case '<':
+                return Reader.Peek(1) == '='
+                    ? TakeBasic(SyntaxKind.LessThanOrEqual, 2)
+                    : TakeBasic(SyntaxKind.LessThan, 1);
+            case '>':
+                return Reader.Peek(1) == '='
+                    ? TakeBasic(SyntaxKind.GreaterThanOrEqual, 2)
+                    : TakeBasic(SyntaxKind.GreaterThan, 1);
         }
 
         // Numeric literals
@@ -323,17 +346,39 @@ internal sealed class Lexer
         // Check for other escape sequences
         switch (ch)
         {
-            case '0': offset++; return '\0';
-            case 'a': offset++; return '\a';
-            case 'b': offset++; return '\b';
-            case 'f': offset++; return '\f';
-            case 'n': offset++; return '\n';
-            case 'r': offset++; return '\r';
-            case 't': offset++; return '\t';
-            case 'v': offset++; return '\v';
-            case '\\': offset++; return '\\';
-            case '\'': offset++; return '\'';
-            case '\"': offset++; return '\"';
+            case '0':
+                offset++;
+                return '\0';
+            case 'a':
+                offset++;
+                return '\a';
+            case 'b':
+                offset++;
+                return '\b';
+            case 'f':
+                offset++;
+                return '\f';
+            case 'n':
+                offset++;
+                return '\n';
+            case 'r':
+                offset++;
+                return '\r';
+            case 't':
+                offset++;
+                return '\t';
+            case 'v':
+                offset++;
+                return '\v';
+            case '\\':
+                offset++;
+                return '\\';
+            case '\'':
+                offset++;
+                return '\'';
+            case '\"':
+                offset++;
+                return '\"';
             default:
                 AddError(SyntaxDiagnostics.InvalidEscapeCharacter, offset, 1);
                 offset++;
@@ -350,6 +395,7 @@ internal sealed class Lexer
             if (trivia == null) break;
             result.Add(trivia);
         }
+
         return result;
     }
 
@@ -365,8 +411,10 @@ internal sealed class Lexer
                 if (State.Peek() == LexerState.LineString) State.Pop();
                 break;
             }
+
             result.Add(trivia);
         }
+
         return result;
     }
 
@@ -418,6 +466,7 @@ internal sealed class Lexer
 
                 offset++;
             }
+
             return TakeTrivia(TriviaKind.MultilineComment, offset);
         }
 

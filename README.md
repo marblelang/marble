@@ -9,7 +9,7 @@
 Marble is a programming language that takes inspiration from C# and Kotlin. It is a statically typed language that
 compiles to CIL bytecode. It is designed to be a general purpose language that can be used with the .NET ecosystem.
 This is the compiler for the language, which is written in C#. It follows the
-[Marble language specification][https://github.com/marblelang/marble-spec].
+[Marble language specification](https://github.com/marblelang/marble-spec).
 
 This project is still in its early stages, so it is not ready for production use. Contributions are welcome.
 

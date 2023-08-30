@@ -221,6 +221,125 @@ that spans multiple lines""""
     }
 
     [Test]
+    [Category("String")]
+    public void InterpolatedString()
+    {
+        const string text = """
+                            $"This is an interpolated {identifier}"
+                            """;
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.InterpolatedStringStart, "$\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is an interpolated ");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.InterpolatedExpressionStart, "{");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.Identifier, "identifier");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.InterpolatedExpressionEnd, "}");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.LineStringEnd, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [Category("String")]
+    public void EscapeSequence()
+    {
+        const string text = """
+                            "This is a string with an escaped \" character"
+                            """;
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.LineStringStart, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is a string with an escaped \" character");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.LineStringEnd, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [Category("String")]
+    public void UnicodeEscapeSequence()
+    {
+        const string text = """
+                            "This is a string with an escaped \u0065 character"
+                            """;
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.LineStringStart, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is a string with an escaped e character");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.LineStringEnd, "\"");
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [Category("String")]
+    public void MultilineEscapeSequence()
+    {
+        const string text = """
+                            "This is a string with an escaped \u0065
+                            character"
+                            """;
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.LineStringStart, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is a string with an escaped e\ncharacter");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.LineStringEnd, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [Category("String")]
+    public void InvalidEscapeSequence()
+    {
+        const string text = """
+                            "This is a string with an invalid escape sequence \z"
+                            """;
+
+        Lex(text);
+
+        AssertNextToken(SyntaxKind.LineStringStart, "\"");
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.StringLiteral, "This is a string with an invalid escape sequence  ");
+        AssertDiagnostics(SyntaxDiagnostics.InvalidEscapeCharacter);
+
+        AssertNextToken(SyntaxKind.LineStringEnd, "\"");
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
     [TestCase("do", SyntaxKind.DoKeyword)]
     [TestCase("else", SyntaxKind.ElseKeyword)]
     [TestCase("false", SyntaxKind.FalseKeyword)]
@@ -305,6 +424,25 @@ that spans multiple lines""""
         Lex(text);
 
         AssertNextToken(kind, text);
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [TestCase("identifier", SyntaxKind.Identifier)]
+    [TestCase("0", SyntaxKind.IntegerLiteral, 0)]
+    [TestCase("1", SyntaxKind.IntegerLiteral, 1)]
+    [TestCase("1234567890", SyntaxKind.IntegerLiteral, 1234567890)]
+    [TestCase("1.23f", SyntaxKind.FloatLiteral, 1.23f, "1.23")]
+    [TestCase("1.23", SyntaxKind.DoubleLiteral, 1.23d)]
+    [Category("Literal")]
+    public void Literal(string text, SyntaxKind kind, object? value = null, string? valueText = null)
+    {
+        Lex(text);
+
+        AssertNextToken(kind, valueText ?? text, value);
         AssertNoTriviaOrDiagnostics();
 
         AssertNextToken(SyntaxKind.EndOfFile);

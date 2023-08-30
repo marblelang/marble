@@ -65,6 +65,21 @@ public enum SyntaxKind
     MultilineStringEnd,
 
     /// <summary>
+    /// A dollar sign and double quote representing the start of an interpolated string.
+    /// </summary>
+    InterpolatedStringStart,
+
+    /// <summary>
+    /// A curly brace representing the start of an interpolated expression.
+    /// </summary>
+    InterpolatedExpressionStart,
+
+    /// <summary>
+    /// A curly brace representing the end of an interpolated expression.
+    /// </summary>
+    InterpolatedExpressionEnd,
+
+    /// <summary>
     /// A non-keyword identifier.
     /// </summary>
     Identifier,
@@ -263,12 +278,12 @@ public enum SyntaxKind
     /// </summary>
     DoubleMinus,
 
-    /// <summmary>
+    /// <summary>
     /// A question mark followed by a period. <c>?.</c>
     /// </summary>
     QuestionMarkPeriod,
 
-    /// <summmary>
+    /// <summary>
     /// A double question mark. <c>??</c>
     /// </summary>
     DoubleQuestionMark,

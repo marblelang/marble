@@ -8,6 +8,7 @@ internal sealed class Lexer
     {
         Normal,
         Interpolation,
+        InterpolatedString,
         LineString,
         MultilineString
     }
@@ -44,9 +45,17 @@ internal sealed class Lexer
                 token.LeadingTrivia = leadingTrivia;
                 token.TrailingTrivia = trailingTrivia;
                 break;
+            case LexerState.InterpolatedString:
+                leadingTrivia = ParseLeadingTrivia();
+                token = LexLineString(true);
+                trailingTrivia = ParseTrailingTrivia();
+
+                token.LeadingTrivia = leadingTrivia;
+                token.TrailingTrivia = trailingTrivia;
+                break;
             case LexerState.LineString:
                 leadingTrivia = ParseLeadingTrivia();
-                token = LexLineString();
+                token = LexLineString(false);
                 trailingTrivia = ParseTrailingTrivia();
 
                 token.LeadingTrivia = leadingTrivia;
@@ -73,8 +82,14 @@ internal sealed class Lexer
             case '\0': return new SyntaxToken(SyntaxKind.EndOfFile, null);
             case '(': return TakeBasic(SyntaxKind.OpenParenthesis, 1);
             case ')': return TakeBasic(SyntaxKind.CloseParenthesis, 1);
-            case '{': return TakeBasic(SyntaxKind.OpenBrace, 1);
-            case '}': return TakeBasic(SyntaxKind.CloseBrace, 1);
+            case '{':
+                return State.Peek() == LexerState.Interpolation
+                    ? TakeBasic(SyntaxKind.InterpolatedExpressionStart, 1)
+                    : TakeBasic(SyntaxKind.OpenBrace, 1);
+            case '}':
+                if (State.Peek() != LexerState.Interpolation) return TakeBasic(SyntaxKind.CloseBrace, 1);
+                State.Pop();
+                return TakeBasic(SyntaxKind.InterpolatedExpressionEnd, 1);
             case '[': return TakeBasic(SyntaxKind.OpenBracket, 1);
             case ']': return TakeBasic(SyntaxKind.CloseBracket, 1);
             case ',': return TakeBasic(SyntaxKind.Comma, 1);
@@ -227,6 +242,15 @@ internal sealed class Lexer
         }
 
         // String literals
+        if (ch == '$')
+        {
+            if (Reader.Peek(1) == '\"')
+            {
+                State.Push(LexerState.InterpolatedString);
+                return TakeBasic(SyntaxKind.InterpolatedStringStart, 2);
+            }
+        }
+
         if (ch == '\"')
         {
             if (Reader.Peek(1) == '\"' && Reader.Peek(2) == '\"')
@@ -242,7 +266,7 @@ internal sealed class Lexer
         return TakeWithText(SyntaxKind.Unknown, 1);
     }
 
-    private SyntaxToken LexLineString()
+    private SyntaxToken LexLineString(bool isInterpolated)
     {
         var offset = 0;
         var ch = Reader.Peek(offset);
@@ -258,24 +282,39 @@ internal sealed class Lexer
                 return new SyntaxToken(SyntaxKind.EndOfFile, null);
         }
 
+        var text = "";
+
         while (ch != '\0' && ch != '\r' && ch != '\n' && ch != '\"')
         {
+            if (isInterpolated && ch == '{')
+            {
+                State.Push(LexerState.Interpolation);
+                break;
+            }
+
             if (ch == '\\')
             {
-                offset++;
-                ch = Reader.Peek(offset);
                 if (ch is '\0' or '\r' or '\n')
                 {
                     AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
                     break;
                 }
+
+                text += Reader.Read(offset).ToString();
+                offset = 1;
+                var escapedChar = ParseEscapeSequence(ref offset);
+                Reader.Read(offset); // Skip the escaped character
+                offset = 0;
+                text += escapedChar;
+
+                if (Reader.Peek(1) is '\"' or '\0' or '\r' or '\n') break; // Don't consume the next character
             }
 
             offset++;
             ch = Reader.Peek(offset);
         }
 
-        var text = Reader.Read(offset).ToString();
+        text += Reader.Read(offset).ToString();
 
         return new LiteralToken(SyntaxKind.StringLiteral, text, text);
     }
@@ -303,17 +342,26 @@ internal sealed class Lexer
                 return new SyntaxToken(SyntaxKind.EndOfFile, null);
         }
 
+        var text = "";
+
         while (ch != '\0' && !(ch is '\"' && ch2 is '\"' && ch3 is '\"'))
         {
             if (ch == '\\')
             {
-                offset++;
-                ch = Reader.Peek(offset);
-                if (ch is '\0')
+                if (ch is '\0' or '\r' or '\n')
                 {
                     AddError(SyntaxDiagnostics.UnclosedString, offset, 1);
                     break;
                 }
+
+                text += Reader.Read(offset).ToString();
+                offset = 1;
+                var escapedChar = ParseEscapeSequence(ref offset);
+                Reader.Read(offset); // Skip the escaped character
+                offset = 0;
+                text += escapedChar;
+
+                if (Reader.Peek(1) is '\"' or '\0' or '\r' or '\n') break; // Don't consume the next character
             }
 
             offset++;
@@ -322,7 +370,7 @@ internal sealed class Lexer
             ch3 = Reader.Peek(offset + 2);
         }
 
-        var text = Reader.Read(offset).ToString();
+        text += Reader.Read(offset).ToString();
 
         return new LiteralToken(SyntaxKind.StringLiteral, text, text);
     }

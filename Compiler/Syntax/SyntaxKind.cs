@@ -263,6 +263,21 @@ public enum SyntaxKind
     /// </summary>
     DoubleMinus,
 
+    /// <summmary>
+    /// A question mark followed by a period. <c>?.</c>
+    /// </summary>
+    QuestionMarkPeriod,
+
+    /// <summmary>
+    /// A double question mark. <c>??</c>
+    /// </summary>
+    DoubleQuestionMark,
+
+    /// <summary>
+    /// A double exclamation mark. <c>!!</c>
+    /// </summary>
+    DoubleExclamationMark,
+
     // Keywords
 
     /// <summary>

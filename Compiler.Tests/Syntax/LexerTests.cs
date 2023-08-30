@@ -219,4 +219,95 @@ that spans multiple lines""""
         AssertNextToken(SyntaxKind.EndOfFile);
         AssertDiagnostics(SyntaxDiagnostics.UnclosedString);
     }
+
+    [Test]
+    [TestCase("do", SyntaxKind.DoKeyword)]
+    [TestCase("else", SyntaxKind.ElseKeyword)]
+    [TestCase("false", SyntaxKind.FalseKeyword)]
+    [TestCase("for", SyntaxKind.ForKeyword)]
+    [TestCase("fun", SyntaxKind.FunKeyword)]
+    [TestCase("if", SyntaxKind.IfKeyword)]
+    [TestCase("return", SyntaxKind.ReturnKeyword)]
+    [TestCase("true", SyntaxKind.TrueKeyword)]
+    [TestCase("use", SyntaxKind.UseKeyword)]
+    [TestCase("val", SyntaxKind.ValKeyword)]
+    [TestCase("var", SyntaxKind.VarKeyword)]
+    [TestCase("while", SyntaxKind.WhileKeyword)]
+    [Category("Syntax")]
+    public void Keyword(string text, SyntaxKind kind)
+    {
+        Lex(text);
+
+        AssertNextToken(kind, text);
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [TestCase("{", SyntaxKind.OpenBrace)]
+    [TestCase("}", SyntaxKind.CloseBrace)]
+    [TestCase("(", SyntaxKind.OpenParenthesis)]
+    [TestCase(")", SyntaxKind.CloseParenthesis)]
+    [TestCase("[", SyntaxKind.OpenBracket)]
+    [TestCase("]", SyntaxKind.CloseBracket)]
+    [TestCase(",", SyntaxKind.Comma)]
+    [TestCase(":", SyntaxKind.Colon)]
+    [TestCase(";", SyntaxKind.Semicolon)]
+    [TestCase(".", SyntaxKind.Period)]
+    [Category("Syntax")]
+    public void Punctuation(string text, SyntaxKind kind)
+    {
+        Lex(text);
+
+        AssertNextToken(kind, text);
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
+
+    [Test]
+    [TestCase("+", SyntaxKind.Plus)]
+    [TestCase("-", SyntaxKind.Minus)]
+    [TestCase("*", SyntaxKind.Asterisk)]
+    [TestCase("/", SyntaxKind.Slash)]
+    [TestCase("%", SyntaxKind.Percent)]
+    [TestCase("^", SyntaxKind.Caret)]
+    [TestCase("&", SyntaxKind.Ampersand)]
+    [TestCase("!", SyntaxKind.ExclamationMark)]
+    [TestCase("?", SyntaxKind.QuestionMark)]
+    [TestCase("=", SyntaxKind.Equals)]
+    [TestCase("<", SyntaxKind.LessThan)]
+    [TestCase(">", SyntaxKind.GreaterThan)]
+    [TestCase("|", SyntaxKind.Pipe)]
+    [TestCase("==", SyntaxKind.DoubleEquals)]
+    [TestCase("!=", SyntaxKind.NotEquals)]
+    [TestCase("<=", SyntaxKind.LessThanOrEqual)]
+    [TestCase(">=", SyntaxKind.GreaterThanOrEqual)]
+    [TestCase("&&", SyntaxKind.DoubleAmpersand)]
+    [TestCase("||", SyntaxKind.DoublePipe)]
+    [TestCase("+=", SyntaxKind.PlusEquals)]
+    [TestCase("-=", SyntaxKind.MinusEquals)]
+    [TestCase("*=", SyntaxKind.AsteriskEquals)]
+    [TestCase("/=", SyntaxKind.SlashEquals)]
+    [TestCase("%=", SyntaxKind.PercentEquals)]
+    [TestCase("^=", SyntaxKind.CaretEquals)]
+    [TestCase("++", SyntaxKind.DoublePlus)]
+    [TestCase("--", SyntaxKind.DoubleMinus)]
+    [TestCase("!!", SyntaxKind.DoubleExclamationMark)]
+    [TestCase("??", SyntaxKind.DoubleQuestionMark)]
+    [TestCase("?.", SyntaxKind.QuestionMarkPeriod)]
+    [Category("Syntax")]
+    public void Operator(string text, SyntaxKind kind)
+    {
+        Lex(text);
+
+        AssertNextToken(kind, text);
+        AssertNoTriviaOrDiagnostics();
+
+        AssertNextToken(SyntaxKind.EndOfFile);
+        AssertNoTriviaOrDiagnostics();
+    }
 }

@@ -82,9 +82,19 @@ internal sealed class Lexer
             case ';': return TakeBasic(SyntaxKind.Semicolon, 1);
             case '.': return TakeBasic(SyntaxKind.Period, 1);
             case '+':
-                return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.PlusEquals, 2) : TakeBasic(SyntaxKind.Plus, 1);
+                return Reader.Peek(1) switch
+                {
+                    '+' => TakeBasic(SyntaxKind.DoublePlus, 2),
+                    '=' => TakeBasic(SyntaxKind.PlusEquals, 2),
+                    _ => TakeBasic(SyntaxKind.Plus, 1)
+                };
             case '-':
-                return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.MinusEquals, 2) : TakeBasic(SyntaxKind.Minus, 1);
+                return Reader.Peek(1) switch
+                {
+                    '-' => TakeBasic(SyntaxKind.DoubleMinus, 2),
+                    '=' => TakeBasic(SyntaxKind.MinusEquals, 2),
+                    _ => TakeBasic(SyntaxKind.Minus, 1)
+                };
             case '*':
                 return Reader.Peek(1) == '='
                     ? TakeBasic(SyntaxKind.AsteriskEquals, 2)
@@ -106,9 +116,12 @@ internal sealed class Lexer
             case '=':
                 return Reader.Peek(1) == '=' ? TakeBasic(SyntaxKind.DoubleEquals, 2) : TakeBasic(SyntaxKind.Equals, 1);
             case '!':
-                return Reader.Peek(1) == '='
-                    ? TakeBasic(SyntaxKind.NotEquals, 2)
-                    : TakeBasic(SyntaxKind.ExclamationMark, 1);
+                return Reader.Peek(1) switch
+                {
+                    '=' => TakeBasic(SyntaxKind.NotEquals, 2),
+                    '!' => TakeBasic(SyntaxKind.DoubleExclamationMark, 2),
+                    _ => TakeBasic(SyntaxKind.ExclamationMark, 1)
+                };
             case '<':
                 return Reader.Peek(1) == '='
                     ? TakeBasic(SyntaxKind.LessThanOrEqual, 2)
@@ -117,6 +130,13 @@ internal sealed class Lexer
                 return Reader.Peek(1) == '='
                     ? TakeBasic(SyntaxKind.GreaterThanOrEqual, 2)
                     : TakeBasic(SyntaxKind.GreaterThan, 1);
+            case '?':
+                return Reader.Peek(1) switch
+                {
+                    '.' => TakeBasic(SyntaxKind.QuestionMarkPeriod, 2),
+                    '?' => TakeBasic(SyntaxKind.DoubleQuestionMark, 2),
+                    _ => TakeBasic(SyntaxKind.QuestionMark, 1)
+                };
         }
 
         // Numeric literals

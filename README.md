@@ -2,7 +2,7 @@
 
 # Marble programming language compiler
 
-[![License Badge](https://img.shields.io/badge/license-Apache_2.0-orange)](LICENSE.txt)
+[![License Badge](https://img.shields.io/badge/license-MIT-red)](LICENSE.txt)
 
 ## Introduction
 
@@ -26,4 +26,4 @@ and print the resulting bytecode.
 
 ## License
 
-This project is licensed under the Apache 2.0 license. See the [LICENSE](LICENSE.txt) file for more information.
+This project is licensed under the MIT license. See the [LICENSE](LICENSE.txt) file for more information.

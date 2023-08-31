@@ -24,6 +24,12 @@ The compiler is not yet ready for use. However, you can run the compiler by runn
 and print the lexical tokens to the console. As the compiler is developed, this will be updated to compile the program
 and print the resulting bytecode.
 
+## Issues
+
+If you find any issues or have any feature requests, please open an issue on the
+[Taiga issue tracker](https://tree.taiga.io/project/luluvia-marble-language-compiler/issues). Alternatively, you can
+open an issue on the [GitHub issue tracker](https://github.com/marblelang/marble/issues) and it will be added to Taiga.
+
 ## License
 
 This project is licensed under the MIT license. See the [LICENSE](LICENSE.txt) file for more information.

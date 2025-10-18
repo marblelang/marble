@@ -1,15 +1,10 @@
 namespace Compiler.Syntax;
 
-internal sealed class SourceReader
+internal sealed class SourceReader(string source)
 {
-    public int Position { get; private set; }
+    private int Position { get; set; }
 
-    private readonly ReadOnlyMemory<char> _source;
-
-    public SourceReader(string source)
-    {
-        _source = source.AsMemory();
-    }
+    private readonly ReadOnlyMemory<char> _source = source.AsMemory();
 
     /// <summary>
     /// Peeks at the next character in the source.

@@ -15,7 +15,7 @@ internal sealed class Lexer
 
     private Stack<LexerState> State { get; } = new();
     private SourceReader Reader { get; }
-    private List<DiagnosticInfo> Diagnostics { get; } = new();
+    private List<DiagnosticInfo> Diagnostics { get; } = [];
 
     public Lexer(SourceReader reader)
     {
